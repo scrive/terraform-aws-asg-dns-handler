@@ -113,6 +113,8 @@ resource "aws_lambda_function" "autoscale_handling" {
   runtime          = "python2.7"
   source_code_hash = filebase64sha256(data.archive_file.autoscale.output_path)
   description      = "Handles DNS for autoscaling groups by receiving autoscaling notifications and setting/deleting records from route53"
+
+  tags = var.tags
 }
 
 resource "aws_lambda_permission" "autoscale_handling" {
