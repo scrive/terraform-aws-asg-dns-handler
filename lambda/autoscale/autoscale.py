@@ -30,12 +30,17 @@ def fetch_private_ip_from_ec2(instance_id):
 def fetch_private_ip_from_route53(hostname, zone_id):
     logger.info("Fetching private IP for hostname: %s", hostname)
 
-    ip_address = route53.list_resource_record_sets(
+    output = route53.list_resource_record_sets(
         HostedZoneId=zone_id,
         StartRecordName=hostname,
         StartRecordType='A',
         MaxItems='1'
-    )['ResourceRecordSets'][0]['ResourceRecords'][0]['Value']
+    )
+
+    # debug
+    logger.info(output)
+
+    ip_address = output['ResourceRecordSets'][0]['ResourceRecords'][0]['Value']
 
     logger.info("Found private IP for hostname %s: %s", hostname, ip_address)
 
@@ -137,7 +142,7 @@ def lambda_handler(event, context):
     for record in event['Records']:
         process_record(record)
 
-# Finish the asg lifecycle operation by sending a continue result
+    # Finish the asg lifecycle operation by sending a continue result
     logger.info("Finishing ASG action")
     message =json.loads(record['Sns']['Message'])
     if LIFECYCLE_KEY in message and ASG_KEY in message :
@@ -147,11 +152,10 @@ def lambda_handler(event, context):
             InstanceId = message['EC2InstanceId'],
             LifecycleActionToken = message['LifecycleActionToken'],
             LifecycleActionResult = 'CONTINUE'
-        
         )
-        logger.info("ASG action complete: %s", response)    
+        logger.info("ASG action complete: %s", response)
     else :
-        logger.error("No valid JSON message")        
+        logger.error("No valid JSON message")
 
 # if invoked manually, assume someone pipes in a event json
 if __name__ == "__main__":
