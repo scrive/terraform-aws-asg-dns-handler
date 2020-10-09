@@ -89,7 +89,7 @@ def update_name_tag(instance_id, hostname):
 def update_record(zone_id, ip, hostname, operation):
     logger.info("Changing record with %s for %s -> %s in %s", operation, hostname, ip, zone_id)
 
-    zoneinfo = routet53.get_hosted_zone(Id=zone_id)
+    zoneinfo = route53.get_hosted_zone(Id=zone_id)
 
     logger.debug(zoneinfo)
 
