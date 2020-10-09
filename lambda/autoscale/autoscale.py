@@ -4,7 +4,7 @@ import boto3
 import sys
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG) #TODO: Replace this with "INFO"
 
 autoscaling = boto3.client('autoscaling')
 ec2 = boto3.client('ec2')
@@ -20,6 +20,9 @@ def fetch_private_ip_from_ec2(instance_id):
     logger.info("Fetching private IP for instance-id: %s", instance_id)
 
     ec2_response = ec2.describe_instances(InstanceIds=[instance_id])
+
+    logger.debug(ec2_response)
+
     ip_address = ec2_response['Reservations'][0]['Instances'][0]['NetworkInterfaces'][0]['PrivateIpAddress']
 
     logger.info("Found private IP for instance-id %s: %s", instance_id, ip_address)
@@ -30,17 +33,16 @@ def fetch_private_ip_from_ec2(instance_id):
 def fetch_private_ip_from_route53(hostname, zone_id):
     logger.info("Fetching private IP for hostname: %s", hostname)
 
-    output = route53.list_resource_record_sets(
+    response = route53.list_resource_record_sets(
         HostedZoneId=zone_id,
         StartRecordName=hostname,
         StartRecordType='A',
         MaxItems='1'
     )
 
-    # debug
-    logger.info(output)
+    logger.debug(response)
 
-    ip_address = output['ResourceRecordSets'][0]['ResourceRecords'][0]['Value']
+    ip_address = response['ResourceRecordSets'][0]['ResourceRecords'][0]['Value']
 
     logger.info("Found private IP for hostname %s: %s", hostname, ip_address)
 
@@ -86,6 +88,16 @@ def update_name_tag(instance_id, hostname):
 # Updates a Route53 record
 def update_record(zone_id, ip, hostname, operation):
     logger.info("Changing record with %s for %s -> %s in %s", operation, hostname, ip, zone_id)
+
+    zoneinfo = routet53.get_hosted_zone(Id=zone_id)
+
+    logger.debug(zoneinfo)
+
+    zonename = zoneinfo['HostedZone']['Name']
+
+    domain = format("%s.%s", hostname, zonename)
+    logger.info("Domain to %s: %s", operation, domain)
+
     route53.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
@@ -93,7 +105,7 @@ def update_record(zone_id, ip, hostname, operation):
                 {
                     'Action': operation,
                     'ResourceRecordSet': {
-                        'Name': hostname,
+                        'Name': domain,
                         'Type': 'A',
                         'TTL': 300,
                         'ResourceRecords': [{'Value': ip}]
