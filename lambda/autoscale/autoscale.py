@@ -95,7 +95,7 @@ def update_record(zone_id, ip, hostname, operation):
 
     zonename = zoneinfo['HostedZone']['Name']
 
-    domain = format("%s.%s", hostname, zonename)
+    domain = "%s.%s" % (hostname, zonename)
     logger.info("Domain to %s: %s", operation, domain)
 
     route53.change_resource_record_sets(
